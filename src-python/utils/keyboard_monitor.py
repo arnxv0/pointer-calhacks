@@ -332,44 +332,116 @@ class KeyboardMonitor:
                     kb.release(Key.backspace)
                     time.sleep(0.05)
                 
-                # Step 2: Show "Thinking..."
-                print("💭 Typing 'Thinking...'", flush=True)
-                thinking_text = "Thinking..."
-                for char in thinking_text:
-                    kb.type(char)
-                    time.sleep(0.05)
+                # Step 2: Show cycling loading messages with animated dots
+                print("💭 Typing loading messages...", flush=True)
+                loading_messages = [
+                    "Analyzing",
+                    "Thinking",
+                    "Generating plan",
+                    "Processing"
+                ]
                 
-                # Animate dots
-                for _ in range(3):
-                    time.sleep(0.3)
-                    for _ in range(3):  # Backspace "..."
-                        kb.press(Key.backspace)
-                        kb.release(Key.backspace)
-                        time.sleep(0.05)
-                    time.sleep(0.3)
-                    for char in "...":
+                current_message = ""
+                message_index = 0
+                
+                def type_message_with_dots(message_base):
+                    """Type a message and animate the dots"""
+                    # Type base message
+                    for char in message_base:
                         kb.type(char)
                         time.sleep(0.05)
+                    
+                    # Add initial dots
+                    kb.type("...")
+                    time.sleep(0.05)
+                    
+                    return len(message_base) + 3  # Return total length including dots
                 
-                # Step 3: Call AI
+                def animate_dots():
+                    """Animate the dots by backspacing and retyping"""
+                    # Backspace the three dots
+                    for _ in range(3):
+                        kb.press(Key.backspace)
+                        kb.release(Key.backspace)
+                        time.sleep(0.03)
+                    
+                    time.sleep(0.2)
+                    
+                    # Retype the dots
+                    kb.type("...")
+                    time.sleep(0.05)
+                
+                # Start typing first message
+                current_message = loading_messages[message_index]
+                message_length = type_message_with_dots(current_message)
+                
+                # Step 3: Call AI in background and cycle messages while waiting
                 print("🤖 Calling AI...", flush=True)
                 import requests
-                response = requests.post(
-                    "http://127.0.0.1:8765/api/agent",
-                    json={"message": query, "context_parts": []},
-                    timeout=30
-                )
+                import threading
                 
-                if response.status_code == 200:
-                    ai_response = response.json().get("response", "")
-                    print(f"✅ AI response: {ai_response}", flush=True)
-                else:
-                    ai_response = f"Error: {response.status_code}"
-                    print(f"❌ AI error: {ai_response}", flush=True)
+                ai_response_container = {"response": None, "error": None}
                 
-                # Step 4: Backspace "Thinking..."
-                print("⌫ Removing 'Thinking...'", flush=True)
-                for _ in range(len(thinking_text)):
+                def call_ai():
+                    try:
+                        response = requests.post(
+                            "http://127.0.0.1:8765/api/agent",
+                            json={"message": query, "context_parts": []},
+                            timeout=30
+                        )
+                        
+                        if response.status_code == 200:
+                            ai_response_container["response"] = response.json().get("response", "")
+                            print(f"✅ AI response: {ai_response_container['response']}", flush=True)
+                        else:
+                            ai_response_container["error"] = f"Error: {response.status_code}"
+                            print(f"❌ AI error: {ai_response_container['error']}", flush=True)
+                    except Exception as e:
+                        ai_response_container["error"] = f"Error: {str(e)}"
+                        print(f"❌ AI exception: {ai_response_container['error']}", flush=True)
+                
+                # Start AI call in background thread
+                ai_thread = threading.Thread(target=call_ai)
+                ai_thread.start()
+                
+                # Animate dots and cycle through messages while waiting for AI response
+                animation_count = 0
+                while ai_response_container["response"] is None and ai_response_container["error"] is None:
+                    time.sleep(0.5)  # Animate dots every 0.5 seconds
+                    
+                    if ai_response_container["response"] is not None or ai_response_container["error"] is not None:
+                        break
+                    
+                    # Animate the dots
+                    animate_dots()
+                    animation_count += 1
+                    
+                    # Change message every 4 animations (2 seconds)
+                    if animation_count >= 4:
+                        animation_count = 0
+                        
+                        # Backspace current message
+                        for _ in range(message_length):
+                            kb.press(Key.backspace)
+                            kb.release(Key.backspace)
+                            time.sleep(0.02)
+                        
+                        # Move to next message
+                        message_index = (message_index + 1) % len(loading_messages)
+                        current_message = loading_messages[message_index]
+                        
+                        # Type new message with dots
+                        message_length = type_message_with_dots(current_message)
+                
+                # Wait for AI thread to complete
+                ai_thread.join()
+                
+                # Get final response
+                ai_response = ai_response_container["response"] or ai_response_container["error"] or "No response"
+                
+                # Step 4: Backspace loading message
+                print("⌫ Removing loading message...", flush=True)
+                for _ in range(message_length):
                     kb.press(Key.backspace)
                     kb.release(Key.backspace)
                     time.sleep(0.05)

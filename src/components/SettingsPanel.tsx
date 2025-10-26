@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import styled from "styled-components";
+import AsiOnePanel from "./AsiOnePanel";
 import CalendarPanel from "./CalendarPanel";
 import EnvVarsPanel from "./EnvVarsPanel";
 import HotkeyPanel from "./HotkeyPanel";
@@ -200,6 +201,9 @@ export default function SettingsPanel({
 
       case "calendar":
         return <CalendarPanel onShowToast={onShowToast} />;
+
+      case "asi":
+        return <AsiOnePanel onShowToast={onShowToast} />;
 
       case "hotkeys":
         return (

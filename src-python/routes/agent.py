@@ -31,6 +31,14 @@ async def process_query(request: dict):
         query = request.get("query", "")
         context = request.get("context", {})
         
+        # Check if query starts with @asi
+        if query.strip().lower().startswith("@asi"):
+            # Route to ASI One agents
+            from .asi import process_asi_query
+            asi_query = query[4:].strip()  # Remove @asi prefix
+            result = await process_asi_query(asi_query, context)
+            return {"success": True, "response": result}
+        
         # Convert to Pointer backend format
         agent_request = AgentRequest(
             message=query,
@@ -59,6 +67,26 @@ async def process_agent_request(request: AgentRequest):
     Returns:
         AgentResponse with agent's response and metadata
     """
+    # Check if message starts with @asi - route to ASI One
+    if request.message.strip().lower().startswith("@asi"):
+        from .asi import process_asi_query
+        asi_query = request.message[4:].strip()  # Remove @asi prefix
+        
+        # Build context from context_parts
+        context = {}
+        if request.context_parts:
+            for part in request.context_parts:
+                if part.get("type") == "text" and "Selected text:" in part.get("content", ""):
+                    selected_text = part.get("content", "").replace("Selected text:", "").strip()
+                    context["selected_text"] = selected_text
+        
+        result = await process_asi_query(asi_query, context)
+        return AgentResponse(
+            response=result,
+            session_id=request.session_id,
+            metadata={"routed_to": "asi_one"}
+        )
+    
     if not pointer_runner:
         raise HTTPException(status_code=503, detail="Pointer backend not available")
     

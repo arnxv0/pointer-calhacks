@@ -11,6 +11,7 @@ const MODULES: Module[] = [
   { id: "hotkey", name: "Hotkey Configuration", icon: "keyboard" },
   { id: "rag", name: "Knowledge Base", icon: "auto_stories" },
   { id: "calendar", name: "Calendar", icon: "calendar_today" },
+  { id: "asi", name: "ASI One", icon: "smart_toy" },
   { id: "env", name: "Environment Variables", icon: "vpn_key" },
   { id: "storage", name: "Data & Storage", icon: "folder_open" },
 ];

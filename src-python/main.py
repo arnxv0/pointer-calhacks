@@ -94,7 +94,7 @@ app.add_middleware(
 )
 
 # Import and include routers
-from routes import health, settings, hotkey, rag, agent, storage, calendar_auth
+from routes import health, settings, hotkey, rag, agent, storage, calendar_auth, asi
 
 # Set the POINTER_BACKEND_AVAILABLE flag in health router
 health.POINTER_BACKEND_AVAILABLE = POINTER_BACKEND_AVAILABLE
@@ -110,6 +110,7 @@ app.include_router(rag.router)
 app.include_router(agent.router)
 app.include_router(storage.router)
 app.include_router(calendar_auth.router)
+app.include_router(asi.router, prefix="/api/asi", tags=["asi"])
 
 # WebSocket connection manager
 class ConnectionManager:

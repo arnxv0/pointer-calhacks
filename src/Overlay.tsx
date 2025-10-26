@@ -12,6 +12,13 @@ interface OverlayContext {
   has_screenshot: boolean;
 }
 
+interface Agent {
+  id: string;
+  name: string;
+  address: string;
+  description: string;
+}
+
 const OverlayContainer = styled.div`
   width: 100%;
   height: 100%;
@@ -39,11 +46,54 @@ const OverlayContent = styled(motion.div)`
   border: 1px solid rgba(0, 0, 0, 0.1);
 `;
 
+const DoneContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  height: 100%;
+  gap: 16px;
+`;
+
+const SuccessIcon = styled(motion.div)`
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #34c759;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 32px;
+`;
+
 const DoneMessage = styled.div`
   text-align: center;
-  padding: 24px;
   font-size: 15px;
-  color: #34c759;
+  color: rgba(0, 0, 0, 0.8);
+  font-weight: 500;
+  max-width: 400px;
+  line-height: 1.5;
+`;
+
+const DismissHint = styled.div`
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.4);
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+`;
+
+const DismissKey = styled.span`
+  padding: 3px 8px;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: inherit;
+  color: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0.12);
   font-weight: 500;
 `;
 
@@ -141,6 +191,29 @@ const Spinner = styled.div`
   }
 `;
 
+const LoadingContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 14px;
+  font-weight: 500;
+`;
+
+const LoadingText = styled.span`
+  animation: pulse 1.5s ease-in-out infinite;
+
+  @keyframes pulse {
+    0%,
+    100% {
+      opacity: 0.6;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+`;
+
 export default function Overlay() {
   const [query, setQuery] = useState("");
   const [mode, setMode] = useState<"execute" | "Add to knowledge" | "insert">(
@@ -148,6 +221,7 @@ export default function Overlay() {
   );
   const [context, setContext] = useState<OverlayContext | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("Analyzing...");
   const inputRef = useRef<HTMLInputElement>(null);
   const [done, setDone] = useState(false);
   const [doneMessage, setDoneMessage] = useState(
@@ -204,6 +278,22 @@ export default function Overlay() {
 
     setIsProcessing(true);
 
+    // Cycle through loading messages
+    const messages = [
+      "Analyzing...",
+      "Thinking...",
+      "Generating plan...",
+      "Processing...",
+      "Almost there...",
+    ];
+    let messageIndex = 0;
+    setLoadingMessage(messages[0]);
+
+    const messageInterval = setInterval(() => {
+      messageIndex = (messageIndex + 1) % messages.length;
+      setLoadingMessage(messages[messageIndex]);
+    }, 2000);
+
     try {
       // Prepare context parts for Arrow backend
       const contextParts = [];
@@ -237,27 +327,48 @@ export default function Overlay() {
         }),
       });
 
+      if (!response.ok) {
+        const errorData = await response
+          .json()
+          .catch(() => ({ detail: response.statusText }));
+        throw new Error(
+          errorData.detail || `HTTP ${response.status}: ${response.statusText}`
+        );
+      }
+
       const result = await response.json();
       console.log("Arrow Agent Result:", result);
 
+      clearInterval(messageInterval);
       setDone(true);
       setDoneMessage(result.response || "Your request has been processed.");
-      setTimeout(closeOverlay, 3000);
+      // Don't auto-close, let user dismiss with ESC
     } catch (error) {
       console.error("Error processing query:", error);
-      setDoneMessage(
-        "Failed to process query. Please check your backend connection."
-      );
+      clearInterval(messageInterval);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      setDoneMessage(`Failed to process query: ${errorMessage}`);
       setDone(true);
-      setTimeout(closeOverlay, 3000);
+      // Don't auto-close on error either
       setIsProcessing(false);
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (done) {
+      // In done state, ESC closes the overlay
+      if (e.key === "Escape") {
+        closeOverlay();
+      }
+      return;
+    }
+
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
+    } else if (e.key === "Escape") {
+      closeOverlay();
     }
   };
 
@@ -277,8 +388,27 @@ export default function Overlay() {
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={handleKeyDown}
+            tabIndex={0}
           >
-            <DoneMessage>{doneMessage}</DoneMessage>
+            <DoneContainer>
+              <SuccessIcon
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{
+                  type: "spring",
+                  stiffness: 200,
+                  damping: 15,
+                  delay: 0.1,
+                }}
+              >
+                <span className="material-icons">check</span>
+              </SuccessIcon>
+              <DoneMessage>{doneMessage}</DoneMessage>
+              <DismissHint>
+                Press <DismissKey>esc</DismissKey> to close
+              </DismissHint>
+            </DoneContainer>
           </OverlayContent>
         </OverlayContainer>
       </ThemeProvider>
@@ -304,11 +434,16 @@ export default function Overlay() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask anything..."
+                placeholder="Ask anything... (type @asi for ASI One)"
                 disabled={isProcessing}
                 autoFocus
               />
-              {isProcessing && <Spinner />}
+              {isProcessing && (
+                <LoadingContainer>
+                  <Spinner />
+                  <LoadingText>{loadingMessage}</LoadingText>
+                </LoadingContainer>
+              )}
             </InputContainer>
 
             <Footer>

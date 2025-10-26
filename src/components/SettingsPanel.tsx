@@ -1,6 +1,7 @@
-import { motion } from 'framer-motion';
-import styled from 'styled-components';
-import { theme } from '../styles/theme';
+import { motion } from "framer-motion";
+import styled from "styled-components";
+import { theme } from "../styles/theme";
+import EnvVarsPanel from "./EnvVarsPanel";
 
 const RightPanel = styled(motion.div)`
   flex: 1;
@@ -59,7 +60,7 @@ const FormLabel = styled.label`
   input[type="checkbox"] {
     width: auto;
     cursor: pointer;
-    accent-color: #007AFF;
+    accent-color: #007aff;
   }
 `;
 
@@ -76,7 +77,7 @@ const FormControl = styled.input`
 
   &:focus {
     outline: none;
-    border-color: #007AFF;
+    border-color: #007aff;
     box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2);
     background: rgba(255, 255, 255, 0.95);
   }
@@ -100,7 +101,7 @@ const Select = styled.select`
 
   &:focus {
     outline: none;
-    border-color: #007AFF;
+    border-color: #007aff;
     box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2);
     background: rgba(255, 255, 255, 0.95);
   }
@@ -127,21 +128,16 @@ const PluginItem = styled.div`
   color: rgba(0, 0, 0, 0.85);
 `;
 
-const Status = styled.span<{ $type: 'success' | 'not-installed' }>`
+const Status = styled.span<{ $type: "success" | "not-installed" }>`
   padding: 4px 12px;
   border-radius: 12px;
   font-size: 12px;
   font-weight: 600;
-  background: ${({ $type }) => 
-    $type === 'success' 
-      ? 'rgba(52, 199, 89, 0.15)' 
-      : 'rgba(255, 59, 48, 0.15)'
-  };
-  color: ${({ $type }) => 
-    $type === 'success' 
-      ? '#34C759' 
-      : '#FF3B30'
-  };
+  background: ${({ $type }) =>
+    $type === "success"
+      ? "rgba(52, 199, 89, 0.15)"
+      : "rgba(255, 59, 48, 0.15)"};
+  color: ${({ $type }) => ($type === "success" ? "#34C759" : "#FF3B30")};
 `;
 
 const CursorPreview = styled.div`
@@ -157,16 +153,18 @@ interface SettingsPanelProps {
   activeModule: string;
   settings: any;
   onSettingsChange: (key: string, value: any) => void;
+  onShowToast: (message: string, type: "success" | "error" | "info") => void;
 }
 
 export default function SettingsPanel({
   activeModule,
   settings,
   onSettingsChange,
+  onShowToast,
 }: SettingsPanelProps) {
   const renderModuleContent = () => {
     switch (activeModule) {
-      case 'general':
+      case "general":
         return (
           <SettingsContent>
             <h2>General Settings</h2>
@@ -178,7 +176,7 @@ export default function SettingsPanel({
                     type="checkbox"
                     checked={settings.launchAtStartup}
                     onChange={(e) =>
-                      onSettingsChange('launchAtStartup', e.target.checked)
+                      onSettingsChange("launchAtStartup", e.target.checked)
                     }
                   />
                   Launch at Startup
@@ -190,7 +188,7 @@ export default function SettingsPanel({
                     type="checkbox"
                     checked={settings.showMenuBar}
                     onChange={(e) =>
-                      onSettingsChange('showMenuBar', e.target.checked)
+                      onSettingsChange("showMenuBar", e.target.checked)
                     }
                   />
                   Show Menu Bar Icon
@@ -200,7 +198,7 @@ export default function SettingsPanel({
           </SettingsContent>
         );
 
-      case 'hotkeys':
+      case "hotkeys":
         return (
           <SettingsContent>
             <h2>Hotkey Configuration</h2>
@@ -212,7 +210,7 @@ export default function SettingsPanel({
                   type="text"
                   value={settings.primaryHotkey}
                   onChange={(e) =>
-                    onSettingsChange('primaryHotkey', e.target.value)
+                    onSettingsChange("primaryHotkey", e.target.value)
                   }
                   placeholder="⌘+Shift+K"
                 />
@@ -223,7 +221,7 @@ export default function SettingsPanel({
                   type="text"
                   value={settings.screenshotHotkey}
                   onChange={(e) =>
-                    onSettingsChange('screenshotHotkey', e.target.value)
+                    onSettingsChange("screenshotHotkey", e.target.value)
                   }
                   placeholder="⌘+Shift+S"
                 />
@@ -232,7 +230,7 @@ export default function SettingsPanel({
           </SettingsContent>
         );
 
-      case 'ai':
+      case "ai":
         return (
           <SettingsContent>
             <h2>AI Configuration</h2>
@@ -244,7 +242,7 @@ export default function SettingsPanel({
                   type="password"
                   value={settings.geminiApiKey}
                   onChange={(e) =>
-                    onSettingsChange('geminiApiKey', e.target.value)
+                    onSettingsChange("geminiApiKey", e.target.value)
                   }
                   placeholder="Enter your API key"
                 />
@@ -254,7 +252,7 @@ export default function SettingsPanel({
                 <Select
                   value={settings.geminiModel}
                   onChange={(e) =>
-                    onSettingsChange('geminiModel', e.target.value)
+                    onSettingsChange("geminiModel", e.target.value)
                   }
                 >
                   <option value="gemini-pro">Gemini Pro</option>
@@ -268,7 +266,7 @@ export default function SettingsPanel({
                 <Select
                   value={settings.responseStyle}
                   onChange={(e) =>
-                    onSettingsChange('responseStyle', e.target.value)
+                    onSettingsChange("responseStyle", e.target.value)
                   }
                 >
                   <option value="professional">Professional</option>
@@ -281,20 +279,23 @@ export default function SettingsPanel({
           </SettingsContent>
         );
 
-      case 'plugins':
+      case "env":
+        return <EnvVarsPanel onShowToast={onShowToast} />;
+
+      case "plugins":
         return (
           <SettingsContent>
             <h2>Plugin Manager</h2>
             <Section>
               <h3>Installed Plugins</h3>
               <PluginList>
-                {['Gmail'].map((plugin) => (
+                {["Gmail"].map((plugin) => (
                   <PluginItem key={plugin}>
                     <span>{plugin}</span>
                     <Status $type="success">Active</Status>
                   </PluginItem>
                 ))}
-                {['VS Code', 'Notion', 'Slack'].map((plugin) => (
+                {["VS Code", "Notion", "Slack"].map((plugin) => (
                   <PluginItem key={plugin}>
                     <span>{plugin}</span>
                     <Status $type="not-installed">Not installed</Status>
@@ -305,7 +306,7 @@ export default function SettingsPanel({
           </SettingsContent>
         );
 
-      case 'cursor':
+      case "cursor":
         return (
           <SettingsContent>
             <h2>Cursor Customization</h2>
@@ -325,7 +326,7 @@ export default function SettingsPanel({
                   type="color"
                   value={settings.cursorColor}
                   onChange={(e) =>
-                    onSettingsChange('cursorColor', e.target.value)
+                    onSettingsChange("cursorColor", e.target.value)
                   }
                 />
               </FormGroup>

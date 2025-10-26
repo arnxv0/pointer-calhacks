@@ -3,6 +3,10 @@ AI-Powered Plugin Selector
 Uses Gemini to intelligently determine which plugin to use based on user query and context
 """
 
+# Disable Google ADK telemetry FIRST - must be before any Google imports
+import os
+os.environ["GOOGLE_ADK_DISABLE_TELEMETRY"] = "1"
+
 import google.generativeai as genai
 from typing import Optional, Dict, Any
 import json
@@ -25,7 +29,7 @@ class PluginSelector:
         "code": "Fix code errors, debug issues, explain code, refactor",
     }
     
-    def __init__(self, api_key: str, model: str = "gemini-1.5-flash"):
+    def __init__(self, api_key: str, model: str = "gemini-2.5-flash"):
         """Initialize the plugin selector with API credentials"""
         genai.configure(api_key=api_key)
         self.model = genai.GenerativeModel(model)

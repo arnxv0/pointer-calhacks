@@ -252,6 +252,7 @@ function App() {
             activeModule={activeModule}
             settings={settings}
             onSettingsChange={updateSettings}
+            onShowToast={showToast}
           />
         </MainContent>
 

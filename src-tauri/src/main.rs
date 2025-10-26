@@ -8,6 +8,8 @@ use tauri::{Manager, Emitter};
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{TrayIconBuilder};
 use tauri_plugin_shell::ShellExt;
+use serde::{Deserialize, Serialize};
+use std::sync::Mutex;
 
 #[cfg(target_os = "macos")]
 use cocoa::appkit::{NSWindow, NSWindowStyleMask};
@@ -15,6 +17,17 @@ use cocoa::appkit::{NSWindow, NSWindowStyleMask};
 use cocoa::base::id;
 #[cfg(target_os = "macos")]
 use objc::runtime::YES;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct OverlayContextData {
+    selected_text: String,
+    has_screenshot: bool,
+}
+
+// Global state to store overlay context
+struct OverlayState {
+    context: Mutex<Option<OverlayContextData>>,
+}
 
 #[cfg(target_os = "macos")]
 fn apply_macos_window_effects(window: &tauri::WebviewWindow) {
@@ -73,11 +86,19 @@ fn show_settings(app: tauri::AppHandle) -> Result<String, String> {
 #[tauri::command]
 async fn show_overlay(
     app: tauri::AppHandle,
+    state: tauri::State<'_, OverlayState>,
     x: f64,
     y: f64,
     context: serde_json::Value,
 ) -> Result<String, String> {
     println!("📍 Showing overlay at: ({}, {})", x, y);
+    
+    // Parse and store context in state
+    if let Ok(context_data) = serde_json::from_value::<OverlayContextData>(context.clone()) {
+        let mut stored_context = state.context.lock().unwrap();
+        *stored_context = Some(context_data.clone());
+        println!("✅ Stored context in state: {:?}", context_data);
+    }
     
     if let Some(window) = app.get_webview_window("overlay") {
         let _ = window.destroy();
@@ -117,7 +138,15 @@ async fn show_overlay(
                     #[cfg(target_os = "macos")]
                     apply_macos_window_effects(&window);
                     
-                    let _ = window.emit("overlay-context", context);
+                    // Wait for window to be ready before emitting context
+                    std::thread::sleep(std::time::Duration::from_millis(100));
+                    
+                    // Emit context to overlay
+                    match window.emit("overlay-context", &context) {
+                        Ok(_) => println!("✅ Emitted overlay-context (fallback): {:?}", context),
+                        Err(e) => println!("❌ Failed to emit overlay-context (fallback): {}", e),
+                    }
+                    
                     std::thread::sleep(std::time::Duration::from_millis(50));
                     let _ = window.show();
                     let _ = window.set_focus();
@@ -180,7 +209,16 @@ async fn show_overlay(
             #[cfg(target_os = "macos")]
             apply_macos_window_effects(&window);
             
-            let _ = window.emit("overlay-context", context);
+            // Wait for window to be ready before emitting context
+            std::thread::sleep(std::time::Duration::from_millis(100));
+            
+            // Emit context to overlay
+            match window.emit("overlay-context", &context) {
+                Ok(_) => println!("✅ Emitted overlay-context: {:?}", context),
+                Err(e) => println!("❌ Failed to emit overlay-context: {}", e),
+            }
+            
+            // Small delay before showing
             std::thread::sleep(std::time::Duration::from_millis(50));
             let _ = window.show();
             let _ = window.set_focus();
@@ -191,7 +229,17 @@ async fn show_overlay(
 }
 
 #[tauri::command]
-async fn hide_overlay(app: tauri::AppHandle) -> Result<String, String> {
+async fn get_overlay_context(state: tauri::State<'_, OverlayState>) -> Result<Option<OverlayContextData>, String> {
+    let context = state.context.lock().unwrap();
+    Ok(context.clone())
+}
+
+#[tauri::command]
+async fn hide_overlay(app: tauri::AppHandle, state: tauri::State<'_, OverlayState>) -> Result<String, String> {
+    // Clear the context when hiding
+    let mut context = state.context.lock().unwrap();
+    *context = None;
+    
     if let Some(window) = app.get_webview_window("overlay") {
         let _ = window.close();
     }
@@ -266,6 +314,9 @@ async fn start_backend(app: tauri::AppHandle) -> Result<String, String> {
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .manage(OverlayState {
+            context: Mutex::new(None),
+        })
         .setup(|app| {
             // Create system tray menu
             let settings_item = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
@@ -331,6 +382,7 @@ fn main() {
             show_settings,
             show_overlay,
             hide_overlay,
+            get_overlay_context,
             process_query,
             load_settings,
             save_settings,

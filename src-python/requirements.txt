@@ -1,14 +1,28 @@
-fastapi==0.109.0
-uvicorn[standard]==0.27.0
-websockets==12.0
-pynput==1.7.6
-PyObjC==10.1
-pyperclip==1.8.2
-Pillow==10.2.0
-python-dotenv==1.0.0
-google-generativeai==0.3.2
-pyinstaller==6.3.0
-requests==2.31.0
-matplotlib==3.8.0
-numpy==1.26.0
-python-multipart==0.0.6
+# Core FastAPI and Server
+fastapi
+uvicorn[standard]
+websockets
+python-multipart
+
+# Google ADK and AI
+google-adk[database]
+google-generativeai
+litellm
+
+# macOS Integration
+pynput
+PyObjC
+pyperclip
+
+# Utilities
+Pillow
+python-dotenv
+requests
+cryptography
+
+# System monitoring (for Arrow backend tools)
+psutil
+yfinance
+
+# Build
+pyinstaller

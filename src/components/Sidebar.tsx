@@ -1,5 +1,5 @@
-import { motion } from 'framer-motion';
-import styled from 'styled-components';
+import { motion } from "framer-motion";
+import styled from "styled-components";
 
 interface Module {
   id: string;
@@ -8,14 +8,15 @@ interface Module {
 }
 
 const MODULES: Module[] = [
-  { id: 'general', name: 'General Settings', icon: 'settings' },
-  { id: 'hotkeys', name: 'Hotkey Configuration', icon: 'keyboard' },
-  { id: 'ai', name: 'AI Configuration', icon: 'smart_toy' },
-  { id: 'plugins', name: 'Plugin Manager', icon: 'extension' },
-  { id: 'cursor', name: 'Cursor Customization', icon: 'mouse' },
-  { id: 'screenshot', name: 'Screenshot Settings', icon: 'image' },
-  { id: 'inline', name: 'Inline Mode', icon: 'edit' },
-  { id: 'security', name: 'Security & Privacy', icon: 'lock' },
+  { id: "general", name: "General Settings", icon: "settings" },
+  { id: "hotkeys", name: "Hotkey Configuration", icon: "keyboard" },
+  { id: "ai", name: "AI Configuration", icon: "smart_toy" },
+  { id: "env", name: "Environment Variables", icon: "vpn_key" },
+  { id: "plugins", name: "Plugin Manager", icon: "extension" },
+  { id: "cursor", name: "Cursor Customization", icon: "mouse" },
+  { id: "screenshot", name: "Screenshot Settings", icon: "image" },
+  { id: "inline", name: "Inline Mode", icon: "edit" },
+  { id: "security", name: "Security & Privacy", icon: "lock" },
 ];
 
 const SidebarContainer = styled.div`
@@ -43,9 +44,12 @@ const NavItem = styled(motion.div)<{ $isActive: boolean }>`
   padding: ${({ theme }) => theme.spacing.md} ${({ theme }) => theme.spacing.xl};
   cursor: pointer;
   transition: all ${({ theme }) => theme.transition.normal};
-  border-left: 3px solid ${({ $isActive }) => $isActive ? '#007AFF' : 'transparent'};
-  background: ${({ $isActive }) => $isActive ? 'rgba(0, 122, 255, 0.15)' : 'transparent'};
-  color: ${({ $isActive }) => $isActive ? 'rgba(0, 0, 0, 0.85)' : 'rgba(0, 0, 0, 0.7)'};
+  border-left: 3px solid
+    ${({ $isActive }) => ($isActive ? "#007AFF" : "transparent")};
+  background: ${({ $isActive }) =>
+    $isActive ? "rgba(0, 122, 255, 0.15)" : "transparent"};
+  color: ${({ $isActive }) =>
+    $isActive ? "rgba(0, 0, 0, 0.85)" : "rgba(0, 0, 0, 0.7)"};
   border-radius: 8px;
   margin: 0 12px 4px 12px;
 
@@ -78,7 +82,7 @@ const StatusDot = styled.div`
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #34C759;
+  background: #34c759;
   animation: pulse 2s infinite;
 `;
 
@@ -92,7 +96,10 @@ interface SidebarProps {
   onModuleChange: (moduleId: string) => void;
 }
 
-export default function Sidebar({ activeModule, onModuleChange }: SidebarProps) {
+export default function Sidebar({
+  activeModule,
+  onModuleChange,
+}: SidebarProps) {
   return (
     <SidebarContainer>
       <SidebarNav>

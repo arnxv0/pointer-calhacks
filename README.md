@@ -26,42 +26,50 @@ A macOS desktop application that enhances your cursor with AI capabilities.
 ## Prerequisites
 
 - macOS 12.0 or later
-- Python 3.9+
+- Python 3.8+ (Python 3.12 recommended)
 - Node.js 18+
-- Rust (for Tauri)
-- Gemini API Key
+- npm or yarn
 
-## Installation
+**Note**: Rust is automatically installed by Tauri CLI if not present.
 
-### 1. Install dependencies
+## Quick Start (One Command!)
+
+Clone the repository and run:
 
 ```bash
+git clone <repository-url>
+cd pointer
 npm install
-cd src-python && pip install -r requirements.txt && cd ..
+npm run tauri:dev
 ```
 
-### 2. Build Python backend
+That's it! The build script will automatically:
+
+- ✅ Create a Python virtual environment
+- ✅ Install all Python dependencies
+- ✅ Build the backend with PyInstaller
+- ✅ Copy the binary to the correct location
+- ✅ Start the app in development mode
+
+## Installation (Detailed)
+
+### 1. Clone and install npm dependencies
 
 ```bash
-cd src-python && python build.py && cd ..
+git clone <repository-url>
+cd pointer
+npm install
 ```
 
-This creates a platform-specific binary (e.g., `pointer-backend-aarch64-apple-darwin` on Apple Silicon Macs).
-
-### 3. Copy binary to Tauri
-
-```bash
-mkdir -p src-tauri/binaries
-cp src-python/dist/pointer-backend-* ../src-tauri/binaries/
-```
-
-### 4. Run in development
+### 2. Run the app
 
 ```bash
 npm run tauri:dev
 ```
 
-### 5. Build for production
+The first run will take a few minutes as it sets up the Python environment and builds the backend.
+
+### 3. Build for production (optional)
 
 ```bash
 npm run tauri:build
@@ -69,12 +77,63 @@ npm run tauri:build
 
 This creates a single `.app` bundle in `src-tauri/target/release/bundle/macos/` with the Python backend automatically included.
 
+## Manual Setup (Optional)
+
+If you prefer to set up manually:
+
+```bash
+# Install npm dependencies
+npm install
+
+# Set up Python environment
+cd src-python
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cd ..
+
+# Build and run
+npm run tauri:dev
+```
+
 ## Configuration
 
-1. Open the app
-2. Navigate to "AI Configuration"
-3. Enter your Gemini API key
-4. Customize hotkeys in "Hotkey Configuration"
+### Initial Setup
+
+1. Launch the app with `npm run tauri:dev`
+2. Click the gear icon (⚙️) to open Settings
+3. Navigate to "Environment Variables"
+
+### Required Configuration
+
+**Google AI (Gemini)**
+
+- Add `GOOGLE_API_KEY` in the "api_keys" category
+- Get your API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
+- Mark as secret: Yes
+
+**Email (Optional)**
+
+- Category: "email"
+- `SMTP_HOST`: Your SMTP server (e.g., smtp.gmail.com)
+- `SMTP_PORT`: Usually 587
+- `SMTP_USERNAME`: Your email address
+- `SMTP_PASSWORD`: Your email password (mark as secret)
+- `SMTP_FROM`: Sender email address
+
+**Google Calendar (Optional)**
+
+- Place your `credentials.json` from Google Cloud Console in `src-python/`
+- Category: "calendar"
+- The app will handle OAuth flow on first use
+
+### Import Environment Variables
+
+You can also import from a `.env` file:
+
+1. Click "Import from .env"
+2. Select your `.env` file
+3. Variables are automatically categorized and encrypted
 
 ## Usage
 

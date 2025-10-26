@@ -150,16 +150,20 @@ export default function Overlay() {
   );
 
   useEffect(() => {
-    const setupListener = async () => {
-      const unlisten = await listen("overlay-context", (event: any) => {
-        console.log("Received context:", event.payload);
-        setContext(event.payload);
-      });
-
-      return unlisten;
+    const fetchContext = async () => {
+      try {
+        const ctx = await invoke<OverlayContext | null>("get_overlay_context");
+        console.log("[OVERLAY] Fetched context from Tauri state:", ctx);
+        if (ctx) {
+          setContext(ctx);
+        }
+      } catch (error) {
+        console.error("[OVERLAY] Failed to fetch context:", error);
+      }
     };
 
-    setupListener();
+    // Fetch context immediately when component mounts
+    fetchContext();
 
     setTimeout(() => {
       inputRef.current?.focus();
@@ -194,65 +198,51 @@ export default function Overlay() {
     setIsProcessing(true);
 
     try {
-      const response = await fetch("http://127.0.0.1:8765/api/process-query", {
+      // Prepare context parts for Arrow backend
+      const contextParts = [];
+
+      console.log("[OVERLAY DEBUG] Context:", context);
+      console.log("[OVERLAY DEBUG] Selected text:", context?.selected_text);
+
+      if (context?.selected_text) {
+        contextParts.push({
+          type: "text",
+          content: `Selected text: ${context.selected_text}`,
+        });
+      }
+
+      console.log("[OVERLAY DEBUG] Context parts:", contextParts);
+      console.log("[OVERLAY DEBUG] Sending request with:", {
+        message: query,
+        context_parts: contextParts.length > 0 ? contextParts : null,
+        session_id: null,
+      });
+
+      const response = await fetch("http://127.0.0.1:8765/api/agent", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          query,
-          mode,
-          settings: {},
-          context: {
-            selected_text: context?.selected_text,
-            has_screenshot: context?.has_screenshot,
-          },
+          message: query,
+          context_parts: contextParts.length > 0 ? contextParts : null,
+          session_id: null,
         }),
       });
 
       const result = await response.json();
-      console.log("Result:", result);
+      console.log("Arrow Agent Result:", result);
 
       setDone(true);
-
-      if (query.toLowerCase().includes("image")) {
-        setDoneMessage("This image is a picture of a cat.");
-        setTimeout(closeOverlay, 2000);
-      } else if (query.toLowerCase().includes("code")) {
-        setDoneMessage("Code snippet added to your knowledge base.");
-        setTimeout(closeOverlay, 2000);
-      } else if (query.toLowerCase().includes("calendar")) {
-        setDoneMessage("Event added to your calendar.");
-        setTimeout(closeOverlay, 2000);
-      } else if (query.toLowerCase().includes("witty")) {
-        setDoneMessage(
-          "Can't take you to the movies cause they don't let you bring your own snacks!"
-        );
-        setTimeout(closeOverlay, 2000);
-      } else if (query.toLowerCase().includes("email")) {
-        setDoneMessage("Email has been sent.");
-        setTimeout(closeOverlay, 2000);
-      } else if (query.toLowerCase().includes("fact?")) {
-        setDoneMessage("This IS NOT a fact!");
-        setTimeout(closeOverlay, 2000);
-      } else if (query.toLowerCase().includes("fact")) {
-        setDoneMessage("This IS a fact!");
-        setTimeout(closeOverlay, 2000);
-      } else if (query.toLowerCase().includes("joke")) {
-        setDoneMessage(
-          "Why did the scarecrow win an award? Because he was outstanding in his field!"
-        );
-      } else if (query.toLowerCase().includes("please")) {
-        setDoneMessage(
-          "Failed to process query, rate limit might be exceeded!"
-        );
-        setTimeout(closeOverlay, 2000);
-      } else {
-        setDoneMessage("Your request has been processed.");
-        setTimeout(closeOverlay, 2000);
-      }
+      setDoneMessage(result.response || "Your request has been processed.");
+      setTimeout(closeOverlay, 3000);
     } catch (error) {
       console.error("Error processing query:", error);
+      setDoneMessage(
+        "Failed to process query. Please check your backend connection."
+      );
+      setDone(true);
+      setTimeout(closeOverlay, 3000);
       setIsProcessing(false);
     }
   };

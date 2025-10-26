@@ -1,6 +1,13 @@
 # Pointer - AI-Powered Cursor Assistant
 
-A macOS desktop application that enhances your cursor with AI capabilities.
+Upgrade your mouse pointer to be agentic
+
+Demo: https://youtu.be/ub4chFUHhtw
+
+Tracks:
+Fetch.ai - Best use of Fetchai and ASI:One - the posisbilites with this are endless
+Ycombinator - Reimagining https://www.ycombinator.com/companies/raycast
+
 
 ## Features
 

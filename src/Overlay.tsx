@@ -101,6 +101,11 @@ const Footer = styled.div`
   border-top: 1px solid rgba(0, 0, 0, 0.06);
 `;
 
+const KeyHintsGroup = styled.div`
+  display: flex;
+  gap: 16px;
+`;
+
 const KeyHint = styled.div`
   display: flex;
   align-items: center;
@@ -150,6 +155,7 @@ export default function Overlay() {
   );
 
   useEffect(() => {
+    // Fetch context from Tauri state (primary method)
     const fetchContext = async () => {
       try {
         const ctx = await invoke<OverlayContext | null>("get_overlay_context");
@@ -162,9 +168,10 @@ export default function Overlay() {
       }
     };
 
-    // Fetch context immediately when component mounts
+    // Fetch immediately
     fetchContext();
 
+    // Focus input after a short delay
     setTimeout(() => {
       inputRef.current?.focus();
     }, 100);
@@ -305,14 +312,16 @@ export default function Overlay() {
             </InputContainer>
 
             <Footer>
-              <KeyHint>
-                <Key>↵</Key>
-                <span>to submit</span>
-              </KeyHint>
-              <KeyHint>
-                <Key>esc</Key>
-                <span>to cancel</span>
-              </KeyHint>
+              <KeyHintsGroup>
+                <KeyHint>
+                  <Key>↵</Key>
+                  <span>to submit</span>
+                </KeyHint>
+                <KeyHint>
+                  <Key>esc</Key>
+                  <span>to cancel</span>
+                </KeyHint>
+              </KeyHintsGroup>
             </Footer>
           </StyledForm>
         </OverlayContent>

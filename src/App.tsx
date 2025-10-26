@@ -117,15 +117,19 @@ function App() {
     let ws: WebSocket | null = null;
     let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
     let reconnectAttempts = 0;
-    const maxReconnectAttempts = 10;
+    const maxReconnectAttempts = 20;
 
     const connect = () => {
       try {
-        console.log("🔌 Attempting to connect to backend...");
+        console.log(
+          `🔌 Attempting to connect to backend (attempt ${
+            reconnectAttempts + 1
+          }/${maxReconnectAttempts})...`
+        );
         ws = new WebSocket("ws://127.0.0.1:8765/ws");
 
         ws.onopen = () => {
-          console.log("✅ Connected to Pointer backend");
+          console.log("✅ WebSocket Connected to Pointer backend");
           setIsConnected(true);
           reconnectAttempts = 0;
           showToast("Connected to Pointer backend", "success");
@@ -157,12 +161,22 @@ function App() {
         };
 
         ws.onclose = (event) => {
-          console.log("🔌 WebSocket closed:", event.code);
+          console.log(
+            "🔌 WebSocket closed, code:",
+            event.code,
+            "reason:",
+            event.reason
+          );
           setIsConnected(false);
 
           if (event.code !== 1000 && reconnectAttempts < maxReconnectAttempts) {
             reconnectAttempts++;
-            reconnectTimeout = setTimeout(connect, 2000);
+            const delay = Math.min(
+              1000 * Math.pow(1.5, reconnectAttempts),
+              5000
+            );
+            console.log(`🔄 Reconnecting in ${delay}ms...`);
+            reconnectTimeout = setTimeout(connect, delay);
           } else if (reconnectAttempts >= maxReconnectAttempts) {
             showToast("Failed to connect to backend", "error");
           }
@@ -170,10 +184,17 @@ function App() {
       } catch (error) {
         console.error("Failed to create WebSocket:", error);
         setIsConnected(false);
+
+        if (reconnectAttempts < maxReconnectAttempts) {
+          reconnectAttempts++;
+          const delay = 1000;
+          reconnectTimeout = setTimeout(connect, delay);
+        }
       }
     };
 
-    const initialTimeout = setTimeout(connect, 500);
+    // Start connecting after 1 second to give backend time to start
+    const initialTimeout = setTimeout(connect, 1000);
 
     return () => {
       clearTimeout(initialTimeout);

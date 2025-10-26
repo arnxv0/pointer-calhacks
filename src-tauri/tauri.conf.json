@@ -32,6 +32,11 @@
     },
     "macOSPrivateApi": true
   },
+  "plugins": {
+    "shell": {
+      "open": true
+    }
+  },
   "bundle": {
     "active": true,
     "targets": "all",

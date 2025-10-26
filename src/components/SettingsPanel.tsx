@@ -1,7 +1,10 @@
 import { motion } from "framer-motion";
 import styled from "styled-components";
+import CalendarPanel from "./CalendarPanel";
 import EnvVarsPanel from "./EnvVarsPanel";
 import HotkeyPanel from "./HotkeyPanel";
+import RagPanel from "./RagPanel";
+import StoragePanel from "./StoragePanel";
 
 const RightPanel = styled(motion.div)`
   flex: 1;
@@ -192,6 +195,12 @@ export default function SettingsPanel({
       case "hotkey":
         return <HotkeyPanel onShowToast={onShowToast} />;
 
+      case "rag":
+        return <RagPanel onShowToast={onShowToast} />;
+
+      case "calendar":
+        return <CalendarPanel onShowToast={onShowToast} />;
+
       case "hotkeys":
         return (
           <SettingsContent>
@@ -275,6 +284,9 @@ export default function SettingsPanel({
 
       case "env":
         return <EnvVarsPanel onShowToast={onShowToast} />;
+
+      case "storage":
+        return <StoragePanel onShowToast={onShowToast} />;
 
       case "plugins":
         return (

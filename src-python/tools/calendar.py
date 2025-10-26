@@ -6,57 +6,47 @@ import tzlocal  # pip install tzlocal
 
 # Lazy imports so it won't crash if libs aren't installed yet
 build = None
-InstalledAppFlow = None
 Credentials = None
-Request = None
 
 try:
     from googleapiclient.discovery import build  # type: ignore
+    from google.oauth2.credentials import Credentials  # type: ignore
 except Exception:
     build = None
-try:
-    from google_auth_oauthlib.flow import InstalledAppFlow  # type: ignore
-    from google.oauth2.credentials import Credentials  # type: ignore
-    from google.auth.transport.requests import Request  # type: ignore
-except Exception:
-    InstalledAppFlow = None
     Credentials = None
 
 # Scopes and environment variables
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
 CALENDAR_ID = os.environ.get("CALENDAR_ID", "primary")
-OAUTH_CLIENT_PATH = os.environ.get("GOOGLE_CALENDAR_CREDENTIALS_JSON", "./client_secret.json")
-TOKEN_PATH = os.environ.get("GOOGLE_CALENDAR_TOKEN_JSON", "./token.json")
 
 # Default timezone (your case)
 DEFAULT_TIMEZONE = os.environ.get("CALENDAR_TIMEZONE", "America/Los_Angeles")
 
 
+def _get_credentials_from_auth():
+    """Get credentials from the calendar_auth router."""
+    try:
+        from routes.calendar_auth import get_calendar_credentials
+        return get_calendar_credentials()
+    except Exception as e:
+        print(f"Error getting credentials from auth router: {e}")
+        return None
+
+
 def _build_service_oauth():
-    """Authenticate with Google Calendar API using OAuth Installed App flow."""
-    if not (build and InstalledAppFlow):
+    """Authenticate with Google Calendar API using OAuth credentials from auth router."""
+    if not build:
         raise RuntimeError(
-            "Missing google-api-python-client or google-auth-oauthlib. "
+            "Missing google-api-python-client. "
             "Run: pip install google-api-python-client google-auth-oauthlib tzlocal"
         )
 
-    creds = None
-    if os.path.exists(TOKEN_PATH) and Credentials:
-        creds = Credentials.from_authorized_user_file(TOKEN_PATH, SCOPES)
-
+    creds = _get_credentials_from_auth()
+    
     if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            if not OAUTH_CLIENT_PATH or not os.path.exists(OAUTH_CLIENT_PATH):
-                raise RuntimeError(
-                    f"OAuth client file not found at {OAUTH_CLIENT_PATH}. "
-                    "Set GOOGLE_CALENDAR_CREDENTIALS_JSON to your client_secret.json."
-                )
-            flow = InstalledAppFlow.from_client_secrets_file(OAUTH_CLIENT_PATH, SCOPES)
-            creds = flow.run_local_server(port=0)
-            with open(TOKEN_PATH, "w") as f:
-                f.write(creds.to_json())
+        raise RuntimeError(
+            "No valid calendar credentials found. Please connect your calendar in the settings."
+        )
 
     svc = build("calendar", "v3", credentials=creds)
     return svc
@@ -113,8 +103,6 @@ async def add_to_calendar(
             "reason": repr(e),
             "event": payload,
             "configured_calendar_id": CALENDAR_ID,
-            "oauth_client_path": OAUTH_CLIENT_PATH,
-            "token_path": TOKEN_PATH,
         }
 
     ident = _who_am_i_and_calendar(service, CALENDAR_ID)
@@ -137,7 +125,6 @@ async def add_to_calendar(
             "creator_email": creator,
             "organizer_email": organizer,
             "timezone_used": tz,
-            "token_path": TOKEN_PATH,
         }
     except Exception as e:
         return {
@@ -146,7 +133,6 @@ async def add_to_calendar(
             "payload": payload,
             "resolved_calendar_id": ident.get("resolved_calendar_id"),
             "acting_email": ident.get("acting_email"),
-            "token_path": TOKEN_PATH,
         }
 
 

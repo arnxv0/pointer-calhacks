@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import styled from "styled-components";
-import { theme } from "../styles/theme";
 import EnvVarsPanel from "./EnvVarsPanel";
+import HotkeyPanel from "./HotkeyPanel";
 
 const RightPanel = styled(motion.div)`
   flex: 1;
@@ -140,15 +140,6 @@ const Status = styled.span<{ $type: "success" | "not-installed" }>`
   color: ${({ $type }) => ($type === "success" ? "#34C759" : "#FF3B30")};
 `;
 
-const CursorPreview = styled.div`
-  display: flex;
-  justify-content: center;
-  padding: ${({ theme }) => theme.spacing.xl};
-  background: rgba(255, 255, 255, 0.5);
-  border-radius: 8px;
-  margin-bottom: ${({ theme }) => theme.spacing.lg};
-`;
-
 interface SettingsPanelProps {
   activeModule: string;
   settings: any;
@@ -197,6 +188,9 @@ export default function SettingsPanel({
             </Section>
           </SettingsContent>
         );
+
+      case "hotkey":
+        return <HotkeyPanel onShowToast={onShowToast} />;
 
       case "hotkeys":
         return (
@@ -302,34 +296,6 @@ export default function SettingsPanel({
                   </PluginItem>
                 ))}
               </PluginList>
-            </Section>
-          </SettingsContent>
-        );
-
-      case "cursor":
-        return (
-          <SettingsContent>
-            <h2>Cursor Customization</h2>
-            <Section>
-              <h3>Cursor Style</h3>
-              <CursorPreview>
-                <svg width="32" height="32" viewBox="0 0 24 24">
-                  <path
-                    d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"
-                    fill={theme.colors.accentNeon}
-                  />
-                </svg>
-              </CursorPreview>
-              <FormGroup>
-                <FormLabel>Cursor Color</FormLabel>
-                <FormControl
-                  type="color"
-                  value={settings.cursorColor}
-                  onChange={(e) =>
-                    onSettingsChange("cursorColor", e.target.value)
-                  }
-                />
-              </FormGroup>
             </Section>
           </SettingsContent>
         );

@@ -51,7 +51,6 @@ logger = logging.getLogger("pointer")
 logger.setLevel(logging.INFO)
 
 from accessibility import AccessibilityManager
-from cursor_manager import CursorManager
 from clipboard_manager import ClipboardManager
 from keyboard_monitor import KeyboardMonitor
 from screenshot_handler import ScreenshotHandler
@@ -125,7 +124,6 @@ connection_manager = ConnectionManager()
 
 # Initialize managers
 accessibility_mgr = AccessibilityManager()
-cursor_mgr = CursorManager()
 clipboard_mgr = ClipboardManager()
 screenshot_handler = ScreenshotHandler()
 
@@ -500,6 +498,104 @@ async def health():
     return {"status": "healthy", "pointer_backend_available": POINTER_BACKEND_AVAILABLE}
 
 
+# Hotkey Management Endpoints
+
+class HotkeyConfig(BaseModel):
+    modifiers: List[str]  # e.g., ["cmd", "shift"]
+    key: str  # e.g., "k"
+
+
+@app.get("/api/hotkey")
+async def get_hotkey():
+    """Get current hotkey configuration."""
+    try:
+        settings_mgr = get_settings_manager()
+        hotkey_settings = settings_mgr.get_category("hotkey", include_secrets=False)
+        
+        # Return default if not configured
+        if not hotkey_settings:
+            return {
+                "modifiers": ["cmd", "shift"],
+                "key": "k"
+            }
+        
+        return {
+            "modifiers": hotkey_settings.get("modifiers", ["cmd", "shift"]),
+            "key": hotkey_settings.get("key", "k")
+        }
+    except Exception as e:
+        logger.error(f"Error getting hotkey: {e}")
+        return {
+            "modifiers": ["cmd", "shift"],
+            "key": "k"
+        }
+
+
+@app.post("/api/hotkey")
+async def set_hotkey(config: HotkeyConfig):
+    """Set hotkey configuration and update the keyboard monitor."""
+    try:
+        # Validate modifiers
+        valid_modifiers = ["cmd", "ctrl", "alt", "shift"]
+        for mod in config.modifiers:
+            if mod.lower() not in valid_modifiers:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid modifier: {mod}. Must be one of {valid_modifiers}"
+                )
+        
+        # Validate key (must be single character)
+        if len(config.key) != 1:
+            raise HTTPException(
+                status_code=400,
+                detail="Key must be a single character"
+            )
+        
+        # Save to database
+        settings_mgr = get_settings_manager()
+        settings_mgr.set("hotkey", "modifiers", config.modifiers, is_secret=False,
+                        description="Hotkey modifier keys")
+        settings_mgr.set("hotkey", "key", config.key.lower(), is_secret=False,
+                        description="Hotkey main key")
+        
+        # Update the keyboard monitor
+        global keyboard_monitor
+        if keyboard_monitor:
+            hotkey_dict = {
+                "modifiers": config.modifiers,
+                "key": config.key.lower()
+            }
+            keyboard_monitor.update_hotkey(hotkey_dict)
+        
+        return {
+            "success": True,
+            "message": "Hotkey updated successfully",
+            "hotkey": {
+                "modifiers": config.modifiers,
+                "key": config.key.lower()
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error setting hotkey: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/hotkey/reset")
+async def reset_hotkey():
+    """Reset hotkey to default (Cmd+Shift+K)."""
+    try:
+        default_config = HotkeyConfig(
+            modifiers=["cmd", "shift"],
+            key="k"
+        )
+        return await set_hotkey(default_config)
+    except Exception as e:
+        logger.error(f"Error resetting hotkey: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 def initialize_backend():
     """Initialize backend services before starting uvicorn"""
     global keyboard_monitor
@@ -507,15 +603,46 @@ def initialize_backend():
     try:
         print("🚀 Pointer backend starting...", flush=True)
         
-        # Initialize keyboard monitor with access to connection manager
+        # Load hotkey configuration from database
+        print("⌨️  Loading hotkey configuration...", flush=True)
+        hotkey_config = None
+        try:
+            settings_mgr = get_settings_manager()
+            hotkey_settings = settings_mgr.get_category("hotkey", include_secrets=False)
+            
+            if hotkey_settings and "modifiers" in hotkey_settings and "key" in hotkey_settings:
+                hotkey_config = {
+                    "modifiers": hotkey_settings["modifiers"],
+                    "key": hotkey_settings["key"]
+                }
+                print(f"✅ Loaded hotkey: {hotkey_settings['modifiers']} + {hotkey_settings['key']}", flush=True)
+            else:
+                print("ℹ️  Using default hotkey: Cmd+Shift+K", flush=True)
+        except Exception as e:
+            print(f"⚠️  Could not load hotkey settings: {e}, using default", flush=True)
+        
+        # Initialize keyboard monitor with hotkey config
         print("📡 Creating keyboard monitor...", flush=True)
-        keyboard_monitor = KeyboardMonitor(connection_manager=connection_manager)
+        keyboard_monitor = KeyboardMonitor(
+            connection_manager=connection_manager,
+            hotkey_config=hotkey_config
+        )
         
         print("⌨️  Starting keyboard monitor...", flush=True)
         keyboard_monitor.start()
         
-        print("🖱️  Setting custom cursor...", flush=True)
-        cursor_mgr.set_custom_cursor()
+        print("🖱️  Loading cursor settings...", flush=True)
+        # Load cursor settings from database
+        # Note: The Tauri app should apply the cursor, not the Python backend
+        try:
+            settings_mgr = get_settings_manager()
+            cursor_settings = settings_mgr.get_category("cursor", include_secrets=False)
+            
+            style = cursor_settings.get("style", "default")
+            print(f"ℹ️  Cursor style in settings: {style}", flush=True)
+            print(f"ℹ️  The Tauri frontend app should apply this cursor", flush=True)
+        except Exception as e:
+            print(f"⚠️  Could not load cursor settings: {e}", flush=True)
         
         print("✅ Pointer backend ready!", flush=True)
     except Exception as e:

@@ -8,15 +8,8 @@ interface Module {
 }
 
 const MODULES: Module[] = [
-  { id: "general", name: "General Settings", icon: "settings" },
-  { id: "hotkeys", name: "Hotkey Configuration", icon: "keyboard" },
-  { id: "ai", name: "AI Configuration", icon: "smart_toy" },
+  { id: "hotkey", name: "Hotkey Configuration", icon: "keyboard" },
   { id: "env", name: "Environment Variables", icon: "vpn_key" },
-  { id: "plugins", name: "Plugin Manager", icon: "extension" },
-  { id: "cursor", name: "Cursor Customization", icon: "mouse" },
-  { id: "screenshot", name: "Screenshot Settings", icon: "image" },
-  { id: "inline", name: "Inline Mode", icon: "edit" },
-  { id: "security", name: "Security & Privacy", icon: "lock" },
 ];
 
 const SidebarContainer = styled.div`

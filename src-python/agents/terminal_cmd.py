@@ -9,6 +9,6 @@ TerminalCmdAgent = LlmAgent(
     name="TerminalCmdGen",
     model="gemini-2.5-flash",
     description="Generates safe terminal commands for tasks.",
-    instruction="Generate 1-3 shell commands with brief comments. Never execute. Avoid destructive commands unless explicitly requested.",
+    instruction="Generate ONLY the shell command, nothing else. No markdown, no code blocks, no comments, no explanations. Just the raw command. Never execute. Avoid destructive commands unless explicitly requested.",
     output_key="command",
 )

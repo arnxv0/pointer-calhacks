@@ -22,6 +22,12 @@ use objc::runtime::YES;
 struct OverlayContextData {
     selected_text: String,
     has_screenshot: bool,
+    #[serde(default)]
+    has_selection: bool,
+    #[serde(default)]
+    is_text_field: bool,
+    #[serde(default)]
+    focused_element: String,
 }
 
 // Global state to store overlay context
@@ -65,11 +71,6 @@ fn apply_macos_window_effects(window: &tauri::WebviewWindow) {
             }
         }
     }).ok();
-}
-
-#[tauri::command]
-fn set_custom_cursor() -> Result<String, String> {
-    Ok("Cursor set".to_string())
 }
 
 #[tauri::command]
@@ -378,7 +379,6 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            set_custom_cursor,
             show_settings,
             show_overlay,
             hide_overlay,

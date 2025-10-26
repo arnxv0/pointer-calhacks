@@ -8,10 +8,12 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
-    "build:backend": "./build-backend.sh",
+    "backend:dev": "./run-backend-dev.sh",
+    "backend:build": "./build-backend.sh",
     "postinstall": "echo '✅ npm dependencies installed. Run npm run tauri:dev to start the app!'",
-    "tauri:dev": "npm run build:backend && tauri dev",
-    "tauri:build": "npm run build:backend && tauri build"
+    "tauri:dev": "npm run backend:build && tauri dev",
+    "tauri:dev:quick": "tauri dev",
+    "tauri:build": "npm run backend:build && tauri build"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.0.0",

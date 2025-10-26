@@ -372,10 +372,20 @@ export default function EnvVarsPanel({ onShowToast }: EnvVarsPanelProps) {
     if (!confirm(`Delete ${key}?`)) return;
 
     try {
-      const response = await fetch(
-        `http://127.0.0.1:8765/api/settings/${category}/${key}`,
-        { method: "DELETE" }
-      );
+      console.log(`Deleting ${category}/${key}...`);
+      const url = `http://127.0.0.1:8765/api/settings/${category}/${key}`;
+      console.log("DELETE URL:", url);
+
+      const response = await fetch(url, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      console.log("Response status:", response.status);
+      const responseData = await response.json();
+      console.log("Response data:", responseData);
 
       if (response.ok) {
         onShowToast("Variable deleted", "success");
